@@ -451,11 +451,31 @@ namespace Reflection.Helper
 
                 // Get reflection data
                 ReflectionDataEntity refData = await reflectionDataRepository.GetReflectionData(reflectionId) ?? null;
+                List<ReflectionDataEntity> ListRefData = await reflectionDataRepository.GetAllRecflectionIdForQuesId(refData.QuestionID) ?? null;
+                int res = 0;
+                int finalFeedback;
+                foreach (var refEntity in ListRefData)
+                {
+                    Dictionary<int, List<FeedbackDataEntity>> feedback = await feedbackDataRepository.GetReflectionFeedback(refEntity.ReflectionID) ?? null;
+                    foreach (var val in feedback.Keys)
+                    {
+
+                        res += val;
+                    }
+                }
+                finalFeedback = (int)Math.Floor((double)res / ListRefData.Count());
+
                 Dictionary<int, List<FeedbackDataEntity>> feedbackData = await feedbackDataRepository.GetReflectionFeedback(reflectionId) ?? null;
+
+                List<FeedbackDataEntity> lst = feedbackData.Values.FirstOrDefault();
+
+                Dictionary<int, List<FeedbackDataEntity>> FinalfeedbackData = new Dictionary<int, List<FeedbackDataEntity>>() { { finalFeedback, lst } };
+
                 List<QuestionsDataEntity> questions = await questionsDataRepository.GetQuestionsByQID(refData.QuestionID) ?? null;
 
+
                 viewReflectionsEntity.ReflectionData = refData;
-                viewReflectionsEntity.FeedbackData = feedbackData;
+                viewReflectionsEntity.FeedbackData = FinalfeedbackData;
                 viewReflectionsEntity.Question = questions.Find(x => x.QuestionID == refData.QuestionID);
                 return viewReflectionsEntity;
             }
