@@ -97,6 +97,7 @@ namespace Reflection.Helper
                         ServiceUrl = taskInfo.serviceUrl,
                         ScheduleId=taskInfo.scheduleId
                     };
+
                     await reflectionDataRepository.InsertOrMergeAsync(reflectEntity);
 
                     if (await questionsDataRepository.IsQuestionAlreadyPresent(taskInfo.question, taskInfo.postCreatedByEmail) == false)
@@ -231,9 +232,9 @@ namespace Reflection.Helper
                     CreatedDate = DateTime.Now,
                     ExecutionDate = taskInfo.executionDate,
                     ExecutionTime = taskInfo.executionTime,
-                    RecurssionEndDate = taskInfo.executionDate.AddDays(60),
-                    NextExecutionDate = taskInfo.nextExecutionDate,
-                    ScheduleId=taskInfo.scheduleId
+                    RecurssionEndDate = taskInfo.executionDate.AddSeconds(10),
+                    NextExecutionDate = DateTime.Now.AddSeconds(int.Parse(_configuration["ScheduleTime"])),
+                    ScheduleId =taskInfo.scheduleId
                 };
                 await recurssionDataRepository.CreateOrUpdateAsync(recurssionEntity);
             }
@@ -287,82 +288,83 @@ namespace Reflection.Helper
             {
                 DateTime nextExecutionDate = Convert.ToDateTime(recurssionEntity.NextExecutionDate);
                 RecurssionDataRepository recurssionDataRepository = new RecurssionDataRepository(_configuration, _telemetry);
+                DateTime? nextExecutionDay = DateTime.Now.AddSeconds(int.Parse(_configuration["ScheduleTime"]));
+                calculatedNextExecutionDate = nextExecutionDay;
+                //switch (recurssionEntity.RecursstionType.ToLower().Trim())
+                //{
+                //    case "daily":
+                //        DateTime? nextExecutionDay = DateTime.Now.AddDays(1);
+                //        calculatedNextExecutionDate = recurssionEntity.RecurssionEndDate >= nextExecutionDay ? nextExecutionDay : null;
+                //        break;
+                //    case "every weekday":
+                //        DateTime? nextWeekDay = GetNextWeekday();
+                //        calculatedNextExecutionDate = recurssionEntity.RecurssionEndDate >= nextWeekDay ? nextWeekDay : null;
+                //        break;
+                //    case "weekly":
+                //        DateTime? nextWeeklyday = GetNextWeeklyday(nextExecutionDate.DayOfWeek);
+                //        calculatedNextExecutionDate = recurssionEntity.RecurssionEndDate >= nextWeeklyday ? nextWeeklyday : null;
+                //        break;
+                //    case "monthly":
+                //        DateTime? nextMonthlyday = nextExecutionDate.AddMonths(1);
+                //        calculatedNextExecutionDate = recurssionEntity.RecurssionEndDate >= nextMonthlyday ? nextMonthlyday : null;
+                //        break;
+                //    case "does not repeat":
+                //        calculatedNextExecutionDate = null;
+                //        break;
+                //    case "custom":
+                //        if (recurssionEntity.CustomRecurssionTypeValue.Contains("week"))
+                //        {
+                //            var selectedweeks = new List<string>();
+                //            weekdays.ForEach(x =>
+                //            {
+                //                if (recurssionEntity.CustomRecurssionTypeValue.Contains(x))
+                //                {
+                //                    selectedweeks.Add(x);
+                //                }
+                //            });
+                //            if (selectedweeks.Count == 1)
+                //            {
+                //                goto case "weekly";
+                //            }
+                //            else if (selectedweeks.Count == 5 && selectedweeks.IndexOf("Saturday") == -1 && selectedweeks.IndexOf("Sunday") == -1)
+                //            {
+                //                goto case "every weekday";
+                //            }
+                //            else
+                //            {
+                //                var weekindex = selectedweeks.IndexOf(nextExecutionDate.DayOfWeek.ToString());
+                //                if ((weekindex + 1) < selectedweeks.Count)
+                //                {
+                //                    int addDays = weekdays.IndexOf(selectedweeks[weekindex + 1]) - weekdays.IndexOf(selectedweeks[weekindex]);
+                //                    DateTime? nextcustomweeklyday = DateTime.Now.AddDays(addDays);
+                //                    calculatedNextExecutionDate = recurssionEntity.RecurssionEndDate >= nextcustomweeklyday ? nextcustomweeklyday : null;
+                //                }
+                //            }
 
-                switch (recurssionEntity.RecursstionType.ToLower().Trim())
-                {
-                    case "daily":
-                        DateTime? nextExecutionDay = DateTime.Now.AddDays(1);
-                        calculatedNextExecutionDate = recurssionEntity.RecurssionEndDate >= nextExecutionDay ? nextExecutionDay : null;
-                        break;
-                    case "every weekday":
-                        DateTime? nextWeekDay = GetNextWeekday();
-                        calculatedNextExecutionDate = recurssionEntity.RecurssionEndDate >= nextWeekDay ? nextWeekDay : null;
-                        break;
-                    case "weekly":
-                        DateTime? nextWeeklyday = GetNextWeeklyday(nextExecutionDate.DayOfWeek);
-                        calculatedNextExecutionDate = recurssionEntity.RecurssionEndDate >= nextWeeklyday ? nextWeeklyday : null;
-                        break;
-                    case "monthly":
-                        DateTime? nextMonthlyday = nextExecutionDate.AddMonths(1);
-                        calculatedNextExecutionDate = recurssionEntity.RecurssionEndDate >= nextMonthlyday ? nextMonthlyday : null;
-                        break;
-                    case "does not repeat":
-                        calculatedNextExecutionDate = null;
-                        break;
-                    case "custom":
-                        if (recurssionEntity.CustomRecurssionTypeValue.Contains("week"))
-                        {
-                            var selectedweeks = new List<string>();
-                            weekdays.ForEach(x =>
-                            {
-                                if (recurssionEntity.CustomRecurssionTypeValue.Contains(x))
-                                {
-                                    selectedweeks.Add(x);
-                                }
-                            });
-                            if (selectedweeks.Count == 1)
-                            {
-                                goto case "weekly";
-                            }
-                            else if (selectedweeks.Count == 5 && selectedweeks.IndexOf("Saturday") == -1 && selectedweeks.IndexOf("Sunday") == -1)
-                            {
-                                goto case "every weekday";
-                            }
-                            else
-                            {
-                                var weekindex = selectedweeks.IndexOf(nextExecutionDate.DayOfWeek.ToString());
-                                if ((weekindex + 1) < selectedweeks.Count)
-                                {
-                                    int addDays = weekdays.IndexOf(selectedweeks[weekindex + 1]) - weekdays.IndexOf(selectedweeks[weekindex]);
-                                    DateTime? nextcustomweeklyday = DateTime.Now.AddDays(addDays);
-                                    calculatedNextExecutionDate = recurssionEntity.RecurssionEndDate >= nextcustomweeklyday ? nextcustomweeklyday : null;
-                                }
-                            }
+                //            break;
+                //        }
 
-                            break;
-                        }
+                //        if (recurssionEntity.CustomRecurssionTypeValue.Contains("month"))
+                //        {
+                //            if (recurssionEntity.CustomRecurssionTypeValue.Contains("Day"))
+                //            {
+                //                goto case "monthly";
+                //            }
+                //            else
+                //            {
+                //                break;
+                //            }
+                //        }
+                //        else
+                //        {
+                //            DateTime? nextcustomdailyday = DateTime.Now.AddDays(1);
+                //            calculatedNextExecutionDate = recurssionEntity.RecurssionEndDate >= nextcustomdailyday ? nextcustomdailyday : null;
+                //            break;
+                //        }
 
-                        if (recurssionEntity.CustomRecurssionTypeValue.Contains("month"))
-                        {
-                            if (recurssionEntity.CustomRecurssionTypeValue.Contains("Day"))
-                            {
-                                goto case "monthly";
-                            }
-                            else
-                            {
-                                break;
-                            }
-                        }
-                        else
-                        {
-                            DateTime? nextcustomdailyday = DateTime.Now.AddDays(1);
-                            calculatedNextExecutionDate = recurssionEntity.RecurssionEndDate >= nextcustomdailyday ? nextcustomdailyday : null;
-                            break;
-                        }
-
-                    default:
-                        break;
-                }
+                //    default:
+                //        break;
+                //}
             }
             catch (Exception ex)
             {
